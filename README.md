@@ -154,6 +154,10 @@ A curated collection of **Awesome LLM apps built with RAG, AI Agents, Multi-agen
 
 *   [🔧 Llama 3.2 Fine-tuning](advanced_llm_apps/llm_finetuning_tutorials/llama3.2_finetuning/)
 
+### 📱 Mobile Apps
+
+*   [🔢 Sudoku React Native App](mobile_apps/sudoku_react_native/)
+
 ## 🚀 Getting Started
 
 1. **Clone the repository** 
