@@ -189,7 +189,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.status !== 'playing') {
         return state;
       }
-      return {...state, elapsedMs: action.elapsedMs};
+      // Time never runs backwards, even if a stale tick arrives.
+      return {...state, elapsedMs: Math.max(state.elapsedMs, action.elapsedMs)};
 
     case 'SECOND_CHANCE':
       if (state.status !== 'lost' || state.secondChanceUsed) {
