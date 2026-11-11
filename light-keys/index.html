@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0f14">
+<title>Light Keys</title>
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0d0f14; --panel:#161a22; --panel2:#1e2330; --line:#2a3142; --text:#e9ecf3; --muted:#9aa3b5;
+  --accent:#7cc7ff; --good:#5ffe86; --bad:#ff506f; --warn:#ffcc2a; --radius:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;min-height:40px}
+button:active{transform:scale(.97)}
+button.primary{background:var(--accent);color:#06121f;border-color:transparent;font-weight:600}
+button.icon{min-width:44px;padding:8px}
+select{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:40px;max-width:100%}
+input[type=range]{accent-color:var(--accent);width:100%}
+#app{display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.brand{font-weight:700;font-size:18px;letter-spacing:.2px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand i{display:inline-block;width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ff506f,#ffcc2a,#5ffe86,#2cc1ec,#9746ec)}
+.pill{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:13px;color:var(--muted);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dot{width:8px;height:8px;border-radius:50%;background:#555;flex:none}
+.dot.on{background:var(--good);box-shadow:0 0 8px var(--good)}
+.dot.half{background:var(--warn)}
+.spacer{flex:1}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;color:var(--muted);padding:8px 12px}
+.seg button.on{background:var(--panel2);color:var(--text);box-shadow:inset 0 -2px 0 var(--accent)}
+.group{display:flex;align-items:center;gap:6px}
+.group label{color:var(--muted);font-size:13px}
+#speedVal{width:44px;text-align:right;color:var(--muted);font-size:13px}
+#songSel{min-width:150px;max-width:230px}
+.seekrow{display:flex;align-items:center;gap:10px;padding:4px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.seekrow span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:40px}
+main{position:relative;flex:1;min-height:0}
+canvas#stage{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#hud{position:absolute;left:12px;top:10px;right:12px;display:flex;gap:10px;align-items:flex-start;pointer-events:none;flex-wrap:wrap}
+#hint{background:rgba(13,15,20,.75);border:1px solid var(--line);padding:6px 10px;border-radius:10px;font-size:14px;max-width:100%}
+#score{margin-left:auto;background:rgba(13,15,20,.75);border:1px solid var(--line);padding:6px 10px;border-radius:10px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+#toast{position:absolute;left:50%;bottom:30%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90%;text-align:center}
+#toast.show{opacity:1}
+#banner{display:none;padding:10px 12px;background:#2a2410;border-bottom:1px solid #5a4a14;color:#ffe9a6;font-size:14px}
+#banner.show{display:block}
+/* Settings sheet */
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:20}
+#sheet.show{display:block}
+#sheet .card{position:absolute;right:0;top:0;bottom:0;width:min(460px,100%);background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+#sheet .tabs{display:flex;gap:4px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center}
+#sheet .tabs .seg{flex:1}
+#sheet .tabs .seg button{flex:1}
+#sheet .body{flex:1;overflow:auto;padding:12px 16px 40px;-webkit-overflow-scrolling:touch;user-select:text;-webkit-user-select:text}
+.tab{display:none}.tab.on{display:block}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.row > label:not(.switch){flex:1;min-width:0}
+.row small{display:block;color:var(--muted);font-size:12px}
+.row .ctl{flex:0 0 auto;max-width:55%;display:flex;gap:6px;align-items:center}
+.row .ctl.wide{flex:1}
+h3{margin:18px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.sw{width:30px;height:30px;border-radius:8px;border:2px solid transparent;min-height:0;padding:0}
+.sw.on{border-color:#fff}
+.switch{position:relative;width:50px;height:30px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;background:#3a4152;border-radius:30px;transition:.2s}
+.switch span:before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked + span{background:var(--accent)}
+.switch input:checked + span:before{transform:translateX(20px)}
+input[type=color]{width:48px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:2px}
+#log{width:100%;height:160px;background:#0a0c10;border:1px solid var(--line);border-radius:8px;color:#9fb3c8;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px;overflow:auto;white-space:pre-wrap}
+.note{color:var(--muted);font-size:13px}
+ol.help{padding-left:20px}ol.help li{margin:6px 0}
+.disabled{opacity:.45;pointer-events:none}
+/* Start overlay */
+#start{position:fixed;inset:0;z-index:30;background:radial-gradient(circle at 50% 35%,#1b2233,#0d0f14 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center}
+#start h1{margin:0;font-size:34px}
+#start p{margin:0;color:var(--muted);max-width:460px}
+#start button{font-size:18px;padding:14px 28px}
+.keysdeco{display:flex;gap:4px}
+.keysdeco b{width:18px;height:60px;border-radius:4px;animation:glow 2.4s infinite ease-in-out}
+@keyframes glow{0%,100%{opacity:.25}50%{opacity:1}}
+@media (max-width:640px){
+  .controls{gap:6px;padding:6px 8px}
+  .seg button{padding:8px 9px}
+  #songSel{min-width:0;max-width:none;flex:1 1 100%}
+  .brand span{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand"><i></i><span>Light Keys</span></div>
+    <div class="pill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusText">Not connected</span></div>
+    <div class="spacer"></div>
+    <button id="btnConnect">Connect</button>
+    <button id="btnSettings" class="icon" aria-label="Settings">⚙︎</button>
+  </header>
+  <div id="banner"></div>
+  <div class="controls">
+    <select id="songSel" aria-label="Song"></select>
+    <button id="btnImport">Open MIDI…</button>
+    <input type="file" id="fileIn" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+    <div class="seg" id="modeSeg">
+      <button data-v="learn">Learn</button><button data-v="along">Play along</button><button data-v="listen">Listen</button>
+    </div>
+    <div class="seg" id="handSeg">
+      <button data-v="both">Both</button><button data-v="right">Right</button><button data-v="left">Left</button>
+    </div>
+    <div class="group"><label for="speed">Speed</label><input type="range" id="speed" min="0.3" max="1.5" step="0.05" style="width:90px"><span id="speedVal"></span></div>
+    <button id="btnRestart" class="icon" aria-label="Restart">⏮</button>
+    <button id="btnPlay" class="primary" style="min-width:84px">▶ Play</button>
+  </div>
+  <div class="seekrow"><span id="tNow">0:00</span><input type="range" id="seek" min="0" max="1000" value="0"><span id="tEnd">0:00</span></div>
+  <main>
+    <canvas id="stage"></canvas>
+    <div id="hud"><div id="hint"></div><div id="score"></div></div>
+    <div id="toast"></div>
+  </main>
+</div>
+
+<div id="sheet">
+  <div class="card">
+    <div class="tabs">
+      <div class="seg" id="tabSeg">
+        <button data-v="sound" class="on">Sound</button><button data-v="lights">Lights</button><button data-v="midi">MIDI</button><button data-v="help">Help</button>
+      </div>
+      <button id="btnClose" class="icon" aria-label="Close">✕</button>
+    </div>
+    <div class="body">
+      <div class="tab on" data-tab="sound">
+        <div class="row"><label>Instrument</label><div class="ctl"><select id="instSel">
+          <option value="piano">Grand piano</option><option value="epiano">Electric piano</option><option value="organ">Organ</option><option value="pad">Warm pad</option><option value="musicbox">Music box</option><option value="off">No sound (use another app)</option>
+        </select></div></div>
+        <div class="row"><label>Volume</label><div class="ctl wide"><input type="range" id="vol" min="0" max="1" step="0.01"></div></div>
+        <div class="row"><label>Reverb</label><div class="ctl wide"><input type="range" id="rev" min="0" max="1" step="0.01"></div></div>
+        <div class="row"><label>Velocity response<small>How much harder playing makes it louder</small></label><div class="ctl wide"><input type="range" id="velc" min="0" max="1" step="0.01"></div></div>
+        <div class="row"><label>Play the song's other hand<small>In Learn and Play along, the hand you're not practicing plays itself</small></label><label class="switch"><input type="checkbox" id="autoOther"><span></span></label></div>
+        <p class="note">Tip: if you hear nothing on iPad, check the volume buttons and that Silent Mode is off.</p>
+      </div>
+
+      <div class="tab" data-tab="lights">
+        <h3>Song lights</h3>
+        <div class="row"><label>Right hand colour</label><div class="ctl"><div class="swatches" id="swR"></div></div></div>
+        <div class="row"><label>Left hand colour</label><div class="ctl"><div class="swatches" id="swL"></div></div></div>
+        <div class="row"><label>Number of keys<small>24 per LUMI block. Use 48 or 72 for snapped-together blocks</small></label><div class="ctl"><select id="keyCount"><option value="24">24</option><option value="48">48</option><option value="72">72</option></select></div></div>
+        <div class="row"><label>Keyboard octave<small>Match your LUMI's octave buttons. Changes the LUMI too when SysEx is allowed</small></label><div class="ctl"><button id="octDown" class="icon">−</button><b id="octVal" style="min-width:28px;text-align:center">0</b><button id="octUp" class="icon">+</button></div></div>
+        <div class="row"><label>Fit octave to each song<small>Moves the LUMI's octave so the song's notes are on your keys (needs SysEx)</small></label><label class="switch"><input type="checkbox" id="autoFit"><span></span></label></div>
+        <div class="row"><label>Follow my octave buttons<small>Guesses the octave from the notes you play</small></label><label class="switch"><input type="checkbox" id="autoTrack"><span></span></label></div>
+        <div class="row"><label>Check the lights</label><div class="ctl"><button id="btnTest">Rainbow test</button><button id="btnClear">Clear</button></div></div>
+
+        <h3>LUMI keyboard settings</h3>
+        <p class="note" id="sysexNote">These settings are sent to the LUMI with SysEx messages.</p>
+        <div id="sysexBox">
+          <div class="row"><label>Key colour</label><div class="ctl"><input type="color" id="colGlobal"></div></div>
+          <div class="row"><label>Root note colour</label><div class="ctl"><input type="color" id="colRoot"></div></div>
+          <div class="row"><label>Brightness</label><div class="ctl wide"><input type="range" id="bright" min="0" max="100" step="1"></div></div>
+          <div class="row"><label>Colour mode</label><div class="ctl"><select id="colMode"><option value="0">Rainbow</option><option value="1">Single colour</option><option value="2">Piano</option><option value="3">Night</option></select></div></div>
+          <div class="row"><label>Scale</label><div class="ctl"><select id="scaleSel"></select></div></div>
+          <div class="row"><label>Key</label><div class="ctl"><select id="keySel"></select></div></div>
+        </div>
+      </div>
+
+      <div class="tab" data-tab="midi">
+        <div class="row"><label>Keyboard input</label><div class="ctl"><select id="inSel"></select></div></div>
+        <div class="row"><label>Send lights to</label><div class="ctl"><select id="outSel"></select></div></div>
+        <div class="row"><label>SysEx</label><div class="ctl" id="sysexState">–</div></div>
+        <h3>Activity</h3>
+        <div id="log"></div>
+      </div>
+
+      <div class="tab" data-tab="help">
+        <h3>Set up on iPad</h3>
+        <ol class="help">
+          <li>Safari on iPad can't talk to MIDI keyboards. Install the free <b>Web MIDI Browser</b> app from the App Store.</li>
+          <li>Connect the LUMI to the iPad with a USB‑C cable (or a Lightning to USB 3 Camera Adapter on older iPads). Bluetooth works too once it's paired, see the note below.</li>
+          <li>Open this page's link in Web MIDI Browser and tap <b>Start</b>. The status at the top turns green when the LUMI is found.</li>
+          <li>Pick a song, keep <b>Learn</b> selected and press the keys that light up. The song waits for you.</li>
+        </ol>
+        <h3>Modes</h3>
+        <p><b>Learn</b> lights the next notes and waits until you play them. <b>Play along</b> keeps time and lights each note just before it's due. <b>Listen</b> plays the song and lights the keys so you can watch.</p>
+        <h3>Your own songs</h3>
+        <p>Tap <b>Open MIDI…</b> to load any .mid file from the Files app. With two tracks, the higher one becomes the right hand. With one track, notes from middle C up are the right hand.</p>
+        <h3>Bluetooth</h3>
+        <p>iPadOS only pairs Bluetooth MIDI from inside a music app. Pair the LUMI once in an app such as GarageBand (Settings › Advanced › Bluetooth MIDI Devices), then come back here. A cable is simpler and has no lag.</p>
+        <h3>If the keys don't light</h3>
+        <ul class="help">
+          <li>Check that "Send lights to" on the MIDI tab names the LUMI.</li>
+          <li>Set the keyboard octave here to match the LUMI's octave buttons, or turn on "Fit octave to each song".</li>
+          <li>Notes outside the LUMI's keys still show on screen. They just can't light.</li>
+          <li>If an old app put a custom program on the LUMI, a factory reset in ROLI Dashboard brings back the light-up behaviour.</li>
+        </ul>
+        <p class="note">Works with ROLI LUMI Keys (also sold as ROLI Piano M). Any other MIDI keyboard can play the sounds and songs. Only LUMI keys light up.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="start">
+  <div class="keysdeco" id="deco"></div>
+  <h1>Light Keys</h1>
+  <p>Plays music from your ROLI LUMI and lights up its keys, without the ROLI app.</p>
+  <button class="primary" id="btnStart">Start</button>
+  <p class="note" id="startNote"></p>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   Light Keys: a player for ROLI LUMI Keys with no ROLI software.
+   - Sound: built-in Web Audio synth
+   - Lights: the LUMI factory program lights a key when it receives a
+     MIDI note-on. The velocity picks a colour from its 128-colour table.
+     Note-off turns it off again.
+   - Settings: LUMI SysEx config messages (reverse-engineered by
+     github.com/benob/LUMI-lights)
+   ============================================================ */
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const noteName = n => NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1);
+const isBlack = n => [1,3,6,8,10].includes(n % 12);
+
+/* ---------- storage (best effort) ---------- */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('lightkeys.' + k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem('lightkeys.' + k, JSON.stringify(v)); } catch(e){} }
+};
+const DEFAULTS = {
+  instrument:'piano', volume:0.8, reverb:0.25, velCurve:0.7, autoOther:true,
+  rhColor:62, lhColor:104, keyCount:24, octave:0, autoFit:true, autoTrack:true,
+  mode:'learn', hands:'both', speed:1, song:'twinkle',
+  inName:'*', outName:'',
+  colGlobal:'#2cc1ec', colRoot:'#ff506f', bright:100, colMode:0, scale:18, key:0
+};
+const S = Object.assign({}, DEFAULTS, store.get('settings', {}));
+const save = () => store.set('settings', S);
+
+/* ---------- LUMI colour table (from its factory program) ---------- */
+const LUMI_COLOURS = ["000000","ff506f","ff546c","ff5869","ff5c66","ff6063","ff6460","ff695c","ff6d59","ff7156","ff7553","ff7950","ff7d4d","ff814a","ff8547","ff8944","ff8d41","ff923d","ff963a","ff9a37","ff9e34","ffa231","ffa62e","ffaa2e","ffae2d","ffb12d","ffb52c","ffb92c","ffbd2b","ffc12b","ffc42b","ffc82a","ffcc2a","ffd029","ffd429","ffd828","ffdb28","ffdf28","ffe327","ffe727","ffeb26","ffee26","fff225","fff625","f7f62a","f0f72e","e8f733","e1f837","d9f83c","d1f841","caf945","c2f94a","baf94f","b3fa53","abfa58","a4fb5c","9cfb61","94fb66","8dfc6a","85fc6f","7dfc74","76fd78","6efd7d","67fe81","5ffe86","5cfc8b","59fa8f","56f894","53f698","50f49d","4df2a2","4af0a6","47eeab","44ecb0","41eab4","3ee9b9","3be7bd","38e5c2","35e3c7","32e1cb","2fdfd0","2cddd5","29dbd9","26d9de","23d7e2","20d5e7","23d0e8","26cbe9","29c6ea","2cc1ec","2fbced","32b7ee","35b2ef","38adf0","3ba8f1","3ea3f2","409ff4","439af5","4695f6","4990f7","4c8bf8","4f86f9","5281fa","557cfc","5877fd","5b72fe","5e6dff","616bfe","6469fd","6767fc","6b64fb","6e62fa","7160f9","745ef8","775cf7","7a5af6","7e58f5","8155f3","8453f2","8751f1","8a4ff0","8d4def","904bee","9448ed","9746ec","9a44eb","9d42ea","ffffff"];
+const lumiHex = v => '#' + LUMI_COLOURS[clamp(v|0, 0, 127)];
+const PALETTE = [1, 16, 38, 50, 62, 78, 90, 104, 118, 126, 127];
+const handColour = h => h === 'L' ? S.lhColor : S.rhColor;
+
+/* ---------- log & toast ---------- */
+const logLines = [];
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logLines.push(t + '  ' + msg); if (logLines.length > 80) logLines.shift();
+  const el = $('#log'); if (el){ el.textContent = logLines.join('\n'); el.scrollTop = el.scrollHeight; }
+}
+let toastTimer;
+function toast(msg, ms = 2200){
+  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+/* ============================================================
+   Sound engine
+   ============================================================ */
+const Synth = (() => {
+  let ctx = null, out, comp, dry, wet, conv, noiseBuf;
+  const waves = {};
+  const voices = new Map();       // key -> voice
+  let sustain = false;
+  const held = new Set();         // keys released while sustain pedal is down
+
+  function init(){
+    if (ctx){ if (ctx.state !== 'running') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC){ log('No Web Audio in this browser'); return; }
+    ctx = new AC({ latencyHint:'interactive' });
+    comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.2;
+    out = ctx.createGain(); out.gain.value = S.volume;
+    dry = ctx.createGain(); dry.gain.value = 1;
+    wet = ctx.createGain(); wet.gain.value = S.reverb;
+    conv = ctx.createConvolver(); conv.buffer = impulse(2.4, 2.8);
+    dry.connect(comp); dry.connect(wet); wet.connect(conv); conv.connect(comp);
+    comp.connect(out); out.connect(ctx.destination);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+    const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    // iOS: play a silent buffer to unlock audio
+    const b = ctx.createBufferSource(); b.buffer = ctx.createBuffer(1, 1, 22050); b.connect(ctx.destination); b.start(0);
+    if (ctx.state !== 'running') ctx.resume();
+  }
+  function impulse(sec, decay){
+    const len = Math.floor(ctx.sampleRate * sec), buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++){ const d = buf.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay); }
+    return buf;
+  }
+  function wave(name, harmonics){
+    if (waves[name]) return waves[name];
+    const real = new Float32Array(harmonics.length + 1), imag = new Float32Array(harmonics.length + 1);
+    harmonics.forEach((a, i) => imag[i + 1] = a);
+    return waves[name] = ctx.createPeriodicWave(real, imag);
+  }
+  const freq = n => 440 * Math.pow(2, (n - 69) / 12);
+  const velGain = v => { const x = v / 127; return Math.pow(x, 0.4 + S.velCurve * 1.6); };
+
+  function osc(type, f, t, dest, detune = 0){
+    const o = ctx.createOscillator();
+    if (typeof type === 'string') o.type = type; else o.setPeriodicWave(type);
+    o.frequency.value = f; o.detune.value = detune; o.connect(dest); o.start(t); return o;
+  }
+
+  const builders = {
+    piano(n, v, t, g){
+      const f = freq(n), vg = velGain(v);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.6;
+      const top = Math.min(16000, f * (3 + 14 * vg) + 800), low = Math.min(12000, f * 2.2 + 500);
+      lp.frequency.setValueAtTime(top, t); lp.frequency.setTargetAtTime(low, t + 0.01, 0.35 + 0.3 * vg);
+      lp.connect(g);
+      const w = wave('piano', [1, .62, .38, .26, .18, .12, .08, .06, .04, .03, .02, .015]);
+      const o1 = osc(w, f, t, lp, -3), o2 = osc(w, f, t, lp, 3.5);
+      const tau = clamp(2.2 * Math.pow(261.6 / f, 0.55), 0.35, 6);
+      const peak = 0.32 * vg + 0.01;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.004);
+      g.gain.setTargetAtTime(peak * 0.5, t + 0.005, 0.09);
+      g.gain.setTargetAtTime(0.00001, t + 0.25, tau);
+      // hammer knock
+      const nz = ctx.createBufferSource(); nz.buffer = noiseBuf;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = Math.min(9000, f * 4); bp.Q.value = 1;
+      const ng = ctx.createGain(); ng.gain.setValueAtTime(0.05 * vg, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+      nz.connect(bp); bp.connect(ng); ng.connect(g); nz.start(t);
+      return { nodes:[o1, o2, nz], release:0.12, stopAfter:1.2 };
+    },
+    epiano(n, v, t, g){
+      const f = freq(n), vg = velGain(v);
+      const car = osc('sine', f, t, g);
+      const mod = ctx.createOscillator(); mod.frequency.value = f; const mg = ctx.createGain();
+      mg.gain.setValueAtTime(f * (0.4 + 2.2 * vg), t); mg.gain.setTargetAtTime(f * 0.15, t, 0.35);
+      mod.connect(mg); mg.connect(car.frequency); mod.start(t);
+      const bell = ctx.createOscillator(); bell.frequency.value = f * 14; const bg = ctx.createGain();
+      bg.gain.setValueAtTime(f * 1.2 * vg, t); bg.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+      bell.connect(bg); bg.connect(car.frequency); bell.start(t);
+      const peak = 0.3 * vg + 0.01;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.003);
+      g.gain.setTargetAtTime(0.00001, t + 0.02, clamp(1.8 * Math.pow(261.6 / f, 0.4), 0.5, 4));
+      return { nodes:[car, mod, bell], release:0.1, stopAfter:0.8 };
+    },
+    organ(n, v, t, g){
+      const f = freq(n);
+      const w = wave('organ', [1, .75, .5, .45, 0, .25, 0, .22]);
+      const o = osc(w, f, t, g);
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 6; const lg = ctx.createGain(); lg.gain.value = 4;
+      lfo.connect(lg); lg.connect(o.detune); lfo.start(t);
+      const peak = 0.12 + 0.06 * velGain(v);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.012);
+      return { nodes:[o, lfo], release:0.05, stopAfter:0.4 };
+    },
+    pad(n, v, t, g){
+      const f = freq(n), vg = velGain(v);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.8;
+      lp.frequency.setValueAtTime(f * 1.5, t); lp.frequency.setTargetAtTime(Math.min(9000, f * (3 + 4 * vg)), t, 0.4);
+      lp.connect(g);
+      const o1 = osc('sawtooth', f, t, lp, -8), o2 = osc('sawtooth', f, t, lp, 8), o3 = osc('triangle', f / 2, t, lp);
+      const peak = 0.09 + 0.07 * vg;
+      g.gain.setValueAtTime(0, t); g.gain.setTargetAtTime(peak, t, 0.18);
+      return { nodes:[o1, o2, o3], release:0.5, stopAfter:3 };
+    },
+    musicbox(n, v, t, g){
+      const f = freq(n), vg = velGain(v);
+      const o1 = osc('sine', f * 2, t, g);
+      const g2 = ctx.createGain(); g2.gain.value = 0.25; g2.connect(g);
+      const o2 = osc('sine', f * 2 * 4.2, t, g2);
+      const peak = 0.28 * vg + 0.02;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.002);
+      g.gain.setTargetAtTime(0.00001, t + 0.01, 0.55);
+      return { nodes:[o1, o2], release:0.25, stopAfter:1.5 };
+    }
+  };
+
+  function noteOn(key, n, v = 100){
+    if (!ctx || S.instrument === 'off') return;
+    if (voices.has(key)) kill(key, 0.03);
+    if (voices.size > 40){ const first = voices.keys().next().value; kill(first, 0.05); }
+    const t = ctx.currentTime;
+    const g = ctx.createGain(); g.connect(dry);
+    const voice = builders[S.instrument](n, v, t, g);
+    voice.g = g;
+    voices.set(key, voice);
+    held.delete(key);
+  }
+  function kill(key, rel){
+    const vc = voices.get(key); if (!vc) return;
+    voices.delete(key); held.delete(key);
+    const t = ctx.currentTime, r = rel == null ? vc.release : rel;
+    try {
+      vc.g.gain.cancelScheduledValues(t);
+      vc.g.gain.setValueAtTime(vc.g.gain.value, t);
+      vc.g.gain.setTargetAtTime(0, t, r / 3);
+      vc.nodes.forEach(nd => { try { nd.stop(t + r * 4 + 0.05); } catch(e){} });
+    } catch(e){}
+    setTimeout(() => { try { vc.g.disconnect(); } catch(e){} }, (r * 4 + 0.3) * 1000);
+  }
+  function noteOff(key){
+    if (!voices.has(key)) return;
+    if (sustain) held.add(key); else kill(key);
+  }
+  function setSustain(on){
+    sustain = on;
+    if (!on){ for (const k of Array.from(held)) kill(k); held.clear(); }
+  }
+  function allOff(prefix){
+    for (const k of Array.from(voices.keys())) if (!prefix || k.startsWith(prefix)) kill(k, 0.05);
+  }
+  return {
+    init, noteOn, noteOff, setSustain, allOff,
+    get ready(){ return !!ctx; },
+    setVolume(v){ if (out) out.gain.setTargetAtTime(v, ctx.currentTime, 0.02); },
+    setReverb(v){ if (wet) wet.gain.setTargetAtTime(v, ctx.currentTime, 0.02); }
+  };
+})();
+
+/* ============================================================
+   MIDI connection
+   ============================================================ */
+const LUMI_RE = /lumi|roli|piano m|block/i;
+const Midi = {
+  access:null, sysex:false, out:null, supported: typeof navigator.requestMIDIAccess === 'function',
+  async connect(){
+    if (!this.supported){ updateStatus(); return false; }
+    try {
+      this.access = await navigator.requestMIDIAccess({ sysex:true }); this.sysex = true;
+    } catch(e){
+      log('SysEx not allowed (' + (e && e.message || e) + '). Trying without it.');
+      try { this.access = await navigator.requestMIDIAccess(); this.sysex = false; }
+      catch(e2){ log('MIDI access refused: ' + (e2 && e2.message || e2)); toast('MIDI access was refused'); updateStatus(); return false; }
+    }
+    this.access.onstatechange = () => this.refresh();
+    this.refresh();
+    log('MIDI ready' + (this.sysex ? ' with SysEx' : ' (no SysEx: lights work, LUMI settings are off)'));
+    return true;
+  },
+  // forEach works with both real Web MIDI maps and the iOS app polyfills
+  inputs(){ const a = []; if (this.access) this.access.inputs.forEach(p => a.push(p)); return a; },
+  outputs(){ const a = []; if (this.access) this.access.outputs.forEach(p => a.push(p)); return a; },
+  refresh(){
+    for (const i of this.inputs()){
+      const listen = S.inName === '*' || S.inName === i.name;
+      i.onmidimessage = listen ? onMidiMessage : null;
+    }
+    const outs = this.outputs();
+    let o = outs.find(x => x.name === S.outName) || null;
+    if (!o && S.outName !== 'none') o = outs.find(x => LUMI_RE.test(x.name)) || null;
+    if (S.outName === 'none') o = null;
+    if (o !== this.out){
+      this.out = o;
+      Lights.lit.clear();
+      if (o){ log('Lights → ' + o.name); try { o.open && o.open(); } catch(e){} }
+    }
+    fillPortSelects(); updateStatus();
+  },
+  send(bytes){
+    if (!this.out) return;
+    try { this.out.send(bytes); } catch(e){ log('Send failed: ' + (e && e.message || e)); }
+  }
+};
+
+/* ---------- LUMI SysEx (config) ---------- */
+const Lumi = {
+  pack(fields){                       // fields: [[value, bits], ...] → 8 seven-bit bytes
+    const bits = [];
+    for (const [v, n] of fields) for (let i = 0; i < n; i++) bits.push(i < 32 ? (v >> i) & 1 : (v < 0 ? 1 : 0));
+    const out = [];
+    for (let b = 0; b < 8; b++){ let x = 0; for (let j = 0; j < 7; j++) x |= (bits[b * 7 + j] || 0) << j; out.push(x); }
+    return out;
+  },
+  checksum(v){ let c = v.length; for (const b of v) c = (c * 3 + b) & 0xff; return c & 0x7f; },
+  send(fields){
+    if (!Midi.out || !Midi.sysex) return false;
+    const cmd = this.pack(fields);
+    Midi.send([0xF0, 0x00, 0x21, 0x10, 0x77, 0x37, ...cmd, this.checksum(cmd), 0xF7]);
+    log('SysEx ' + cmd.map(b => b.toString(16).padStart(2, '0')).join(' '));
+    return true;
+  },
+  colour(which, hex){                 // which: 0 = key colour, 1 = root colour
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return this.send([[0x10, 7], [0x20 + 0x10 * which, 7], [0b00100, 5], [b, 8], [g, 8], [r, 8], [0xff, 8]]);
+  },
+  brightness(p){ return this.send([[0x10, 7], [0x40, 7], [0b00100, 5], [clamp(p, 0, 100), 7]]); },
+  octave(o){ return this.send([[0x10, 7], [0x40, 7], [0b00000, 5], [o, 32]]); },
+  colourMode(m){ return this.send([[0x10, 7], [0x40, 7], [0b00010, 5], [m & 3, 2]]); },
+  scale(s){ return this.send([[0x10, 7], [0x60, 7], [0b00010, 5], [s, 7]]); },
+  key(k){ return this.send([[0x10, 7], [0x30, 7], [0b00011, 5], [k, 7]]); }
+};
+const SCALES = ['Major','Minor','Harmonic minor','Pentatonic neutral','Pentatonic major','Pentatonic minor','Blues','Dorian','Phrygian','Lydian','Mixolydian','Locrian','Whole tone','Arabic (A)','Arabic (B)','Japanese','Ryukyu','8-tone Spanish','Chromatic'];
+
+/* ---------- Key lights ---------- */
+const Lights = {
+  lit: new Map(),                     // midi note -> colour index currently lit on the LUMI
+  showing:false,
+  base(){ return 48 + S.octave * 12; },
+  span(){ return S.keyCount; },
+  inRange(n){ const b = this.base(); return n >= b && n < b + this.span(); },
+  apply(desired){
+    if (!Midi.out) return;
+    for (const [n] of this.lit) if (!desired.has(n)){ Midi.send([0x80, n, 0]); this.lit.delete(n); }
+    for (const [n, c] of desired){
+      if (!this.inRange(n)) continue;
+      if (this.lit.get(n) !== c){ Midi.send([0x90, n, clamp(c, 1, 127)]); this.lit.set(n, c); }
+    }
+  },
+  clear(){ this.apply(new Map()); },
+  // The LUMI's own octave changed: turn off what is lit, using the old key positions.
+  rebase(oldBase, newBase){
+    for (const [n] of this.lit){ const k = n - oldBase + newBase; if (k >= 0 && k < 128) Midi.send([0x80, k, 0]); }
+    this.lit.clear();
+  },
+  async rainbow(){
+    if (!Midi.out){ toast('No LUMI found. Check the MIDI tab'); return; }
+    this.showing = true; this.clear();
+    const b = this.base(), s = this.span();
+    for (let i = 0; i < s; i++){ Midi.send([0x90, b + i, 1 + Math.round(i * 125 / Math.max(1, s - 1))]); await sleep(35); }
+    await sleep(700);
+    for (let i = 0; i < s; i++){ Midi.send([0x80, b + i, 0]); await sleep(20); }
+    this.showing = false;
+  }
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// sendToDevice: true when the app changes the octave, false when the LUMI moved by itself.
+function setOctave(o, sendToDevice){
+  o = clamp(o, -4, 5);
+  if (o === S.octave) return;
+  const oldBase = Lights.base();
+  const deviceMoved = sendToDevice ? Lumi.octave(o) : true;
+  if (!deviceMoved) Lights.clear();
+  S.octave = o; save();
+  if (deviceMoved) Lights.rebase(oldBase, Lights.base());
+  $('#octVal').textContent = (o > 0 ? '+' : '') + o;
+  layoutKeys();
+}
+
+/* ============================================================
+   Songs
+   ============================================================ */
+// Notation: NOTE[:beats]  R[:beats] = rest  [C4 E4 G4]:beats = chord. Default length is 1 beat.
+const SONGS = [
+  { id:'twinkle', title:'Twinkle Twinkle Little Star', bpm:100,
+    rh:'C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2 G4 G4 F4 F4 E4 E4 D4:2 G4 G4 F4 F4 E4 E4 D4:2 C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2',
+    lh:'C3:4 F3:2 C3:2 F3:2 C3:2 G3:2 C3:2 C3:2 F3:2 C3:2 G3:2 C3:2 F3:2 C3:2 G3:2 C3:4 F3:2 C3:2 F3:2 C3:2 G3:2 C3:2' },
+  { id:'mary', title:'Mary Had a Little Lamb', bpm:110,
+    rh:'E4 D4 C4 D4 E4 E4 E4:2 D4 D4 D4:2 E4 G4 G4:2 E4 D4 C4 D4 E4 E4 E4 E4 D4 D4 E4 D4 C4:4',
+    lh:'C3:4 C3:4 G3:4 C3:4 C3:4 C3:4 G3:4 C3:4' },
+  { id:'ode', title:'Ode to Joy (Beethoven)', bpm:100,
+    rh:'E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4:1.5 D4:0.5 D4:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:0.5 C4:2 D4 D4 E4 C4 D4 E4:0.5 F4:0.5 E4 C4 D4 E4:0.5 F4:0.5 E4 D4 C4 D4 G3:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:0.5 C4:2',
+    lh:'C3:4 G3:4 C3:4 G3:4 C3:4 G3:4 C3:4 G3:2 C3:2 G3:4 G3:2 C3:2 G3:4 C3:2 D3:2 C3:4 G3:4 C3:4 G3:2 C3:2' },
+  { id:'frere', title:'Frère Jacques', bpm:110,
+    rh:'C4 D4 E4 C4 C4 D4 E4 C4 E4 F4 G4:2 E4 F4 G4:2 G4:0.5 A4:0.5 G4:0.5 F4:0.5 E4 C4 G4:0.5 A4:0.5 G4:0.5 F4:0.5 E4 C4 C4 G3 C4:2 C4 G3 C4:2',
+    lh:'C3:2 G3:2 C3:2 G3:2 C3:2 G3:2 C3:2 G3:2 C3:2 G3:2 C3:2 G3:2 C3:4 C3:4' },
+  { id:'jingle', title:'Jingle Bells', bpm:120,
+    rh:'E4 E4 E4:2 E4 E4 E4:2 E4 G4 C4:1.5 D4:0.5 E4:4 F4 F4 F4:1.5 F4:0.5 F4 E4 E4 E4:0.5 E4:0.5 E4 D4 D4 E4 D4:2 G4:2 E4 E4 E4:2 E4 E4 E4:2 E4 G4 C4:1.5 D4:0.5 E4:4 F4 F4 F4 F4 F4 E4 E4 E4:0.5 E4:0.5 G4 G4 F4 D4 C4:4',
+    lh:'C3:4 C3:4 C3:4 C3:4 F3:4 C3:4 G3:4 G3:4 C3:4 C3:4 C3:4 C3:4 F3:4 C3:4 G3:4 C3:4' },
+  { id:'birthday', title:'Happy Birthday', bpm:100,
+    rh:'C4:0.75 C4:0.25 D4 C4 F4 E4:2 C4:0.75 C4:0.25 D4 C4 G4 F4:2 C4:0.75 C4:0.25 C5 A4 F4 E4 D4:2 A#4:0.75 A#4:0.25 A4 F4 G4 F4:2',
+    lh:'R:1 F3:3 C3:3 C3:3 F3:3 F3:3 A#3:3 F3:3 C3:1 F3:2' },
+  { id:'elise', title:'Für Elise, opening (Beethoven)', bpm:330,
+    rh:'E5 D#5 E5 D#5 E5 B4 D5 C5 A4:2 R C4 E4 A4 B4:2 R E4 G#4 B4 C5:2 R E4 E5 D#5 E5 D#5 E5 B4 D5 C5 A4:2 R C4 E4 A4 B4:2 R E4 C5 B4 A4:3',
+    lh:'R:2 R:6 A2 E3 A3 R:3 E2 E3 G#3 R:3 A2 E3 A3 R:3 R:6 A2 E3 A3 R:3 E2 E3 G#3 R:3 A2 E3 A3' },
+  { id:'scale', title:'Exercise: C major scale', bpm:90,
+    rh:'C4 D4 E4 F4 G4 A4 B4 C5 B4 A4 G4 F4 E4 D4 C4:2', lh:'' },
+  { id:'chords', title:'Exercise: first chords', bpm:70,
+    rh:'[C4 E4 G4]:2 [F4 A4 C5]:2 [G4 B4 D5]:2 [C4 E4 G4]:2 [A3 C4 E4]:2 [F3 A3 C4]:2 [G3 B3 D4]:2 [C4 E4 G4]:2',
+    lh:'C3:2 F3:2 G3:2 C3:2 A2:2 F2:2 G2:2 C3:2' }
+];
+
+function parseNote(tok){
+  const m = /^([A-Ga-g])(#|b)?(-?\d)$/.exec(tok); if (!m) return null;
+  const base = { c:0, d:2, e:4, f:5, g:7, a:9, b:11 }[m[1].toLowerCase()];
+  return base + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (parseInt(m[3], 10) + 1) * 12;
+}
+function parseLine(str, hand, bpm, out){
+  if (!str) return;
+  const spb = 60 / bpm; let beat = 0;
+  const re = /\[([^\]]+)\](?::([\d.]+))?|(\S+)/g; let m;
+  while ((m = re.exec(str))){
+    let notes, len;
+    if (m[1]){ notes = m[1].trim().split(/\s+/); len = parseFloat(m[2] || '1'); }
+    else { const [a, b] = m[3].split(':'); notes = [a]; len = parseFloat(b || '1'); }
+    for (const nt of notes){
+      if (/^r$/i.test(nt)) continue;
+      const n = parseNote(nt); if (n == null) continue;
+      out.push({ n, t: 1 + beat * spb, d: Math.max(0.08, len * spb * 0.95), h: hand, v: 90 });
+    }
+    beat += len;
+  }
+}
+function buildSong(def){
+  const ev = [];
+  parseLine(def.rh, 'R', def.bpm, ev);
+  parseLine(def.lh, 'L', def.bpm, ev);
+  return finishSong(def.title, ev);
+}
+function finishSong(title, ev){
+  ev.sort((a, b) => a.t - b.t || a.n - b.n);
+  ev.forEach((e, i) => e.id = i);
+  const duration = ev.reduce((m, e) => Math.max(m, e.t + e.d), 0);
+  const maxDur = ev.reduce((m, e) => Math.max(m, e.d), 0);
+  return { title, events: ev, duration, maxDur };
+}
+
+/* ---------- MIDI file import ---------- */
+function parseMidiFile(buf, title){
+  const d = new DataView(buf); let p = 0;
+  const str = n => { let s = ''; for (let i = 0; i < n; i++) s += String.fromCharCode(d.getUint8(p++)); return s; };
+  const u32 = () => { const v = d.getUint32(p); p += 4; return v; };
+  const u16 = () => { const v = d.getUint16(p); p += 2; return v; };
+  const vlq = () => { let v = 0, b; do { b = d.getUint8(p++); v = (v << 7) | (b & 0x7f); } while (b & 0x80); return v; };
+  if (str(4) !== 'MThd') throw new Error('This is not a MIDI file');
+  const hlen = u32(); u16(); const ntr = u16(), div = u16(); p = 8 + hlen;
+  if (div & 0x8000) throw new Error('SMPTE-timed MIDI files are not supported');
+  const tempos = [{ tick:0, us:500000 }], tracks = [];
+  for (let t = 0; t < ntr && p + 8 <= d.byteLength; t++){
+    const id = str(4), len = u32(), end = Math.min(p + len, d.byteLength);
+    if (id !== 'MTrk'){ p = end; continue; }
+    let tick = 0, rs = 0; const notes = [], open = {};
+    while (p < end){
+      tick += vlq();
+      let st = d.getUint8(p);
+      if (st & 0x80) p++; else st = rs;
+      if (st === 0xFF){
+        const type = d.getUint8(p++), l = vlq();
+        if (type === 0x51 && l === 3) tempos.push({ tick, us:(d.getUint8(p) << 16) | (d.getUint8(p + 1) << 8) | d.getUint8(p + 2) });
+        p += l; if (type === 0x2F) break;
+      } else if (st === 0xF0 || st === 0xF7){ p += vlq(); }
+      else {
+        rs = st; const type = st & 0xf0, ch = st & 0x0f;
+        const a = d.getUint8(p++), b = (type === 0xC0 || type === 0xD0) ? 0 : d.getUint8(p++);
+        const k = ch * 128 + a;
+        if (type === 0x90 && b > 0) (open[k] = open[k] || []).push({ tick, v:b });
+        else if (type === 0x80 || type === 0x90){
+          const q = open[k]; if (q && q.length){ const o = q.shift(); if (ch !== 9) notes.push({ n:a, t0:o.tick, t1:tick, ch, v:o.v }); }
+        }
+      }
+    }
+    p = end;
+    if (notes.length) tracks.push(notes);
+  }
+  if (!tracks.length) throw new Error('No notes found in this file');
+  tempos.sort((a, b) => a.tick - b.tick);
+  const toSec = tick => {
+    let sec = 0, last = 0, us = 500000;
+    for (const tp of tempos){ if (tp.tick >= tick) break; sec += (tp.tick - last) * us / div / 1e6; last = tp.tick; us = tp.us; }
+    return sec + (tick - last) * us / div / 1e6;
+  };
+  // Split into hands: highest track/channel = right hand.
+  let groups = tracks;
+  if (groups.length === 1){
+    const byCh = {}; for (const nt of groups[0]) (byCh[nt.ch] = byCh[nt.ch] || []).push(nt);
+    groups = Object.values(byCh);
+  }
+  const ev = [];
+  if (groups.length === 1){
+    for (const nt of groups[0]) ev.push({ n:nt.n, t:toSec(nt.t0), d:Math.max(0.06, toSec(nt.t1) - toSec(nt.t0)), h: nt.n >= 60 ? 'R' : 'L', v:nt.v });
+  } else {
+    const avg = g => g.reduce((s, x) => s + x.n, 0) / g.length;
+    const sorted = groups.slice().sort((a, b) => avg(b) - avg(a));
+    sorted.forEach((g, gi) => { for (const nt of g) ev.push({ n:nt.n, t:toSec(nt.t0), d:Math.max(0.06, toSec(nt.t1) - toSec(nt.t0)), h: gi === 0 ? 'R' : 'L', v:nt.v }); });
+  }
+  const first = ev.reduce((m, e) => Math.min(m, e.t), Infinity);
+  ev.forEach(e => e.t = e.t - first + 1);
+  return finishSong(title, ev);
+}
+
+/* ============================================================
+   Player
+   ============================================================ */
+const P = {
+  song:null, t:0, playing:false, idx:0, sounding:[], groups:[], gi:0, hit:new Set(),
+  stats:{ hit:0, miss:0 }, ended:false, flash:new Map(), userDown:new Map()
+};
+const practiced = ev => S.mode !== 'listen' && (S.hands === 'both' || (S.hands === 'right' && ev.h === 'R') || (S.hands === 'left' && ev.h === 'L'));
+const autoPlays = ev => S.mode === 'listen' || (!practiced(ev) && S.autoOther);
+
+function loadSong(song){
+  stopSounding(); P.song = song; P.playing = false; P.ended = false;
+  rebuildGroups(); seek(0);
+  $('#tEnd').textContent = fmtTime(song.duration);
+  layoutKeys();
+  fitOctave();
+  updatePlayBtn();
+}
+function rebuildGroups(){
+  P.groups = []; if (!P.song) return;
+  let cur = null;
+  for (const ev of P.song.events){
+    if (!practiced(ev)) continue;
+    if (cur && ev.t - cur.t < 0.04) cur.notes.push(ev);
+    else { cur = { t:ev.t, notes:[ev] }; P.groups.push(cur); }
+  }
+  P.gi = P.groups.findIndex(g => g.t >= P.t - 0.001); if (P.gi < 0) P.gi = P.groups.length;
+  P.hit.clear();
+}
+function seek(t){
+  stopSounding();
+  P.t = clamp(t, 0, P.song ? P.song.duration : 0);
+  const ev = P.song ? P.song.events : [];
+  P.idx = 0; while (P.idx < ev.length && ev[P.idx].t < P.t) P.idx++;
+  P.gi = P.groups.findIndex(g => g.t >= P.t - 0.001); if (P.gi < 0) P.gi = P.groups.length;
+  P.hit.clear(); P.ended = false;
+  if (t === 0) P.stats = { hit:0, miss:0 };
+}
+function stopSounding(){ Synth.allOff('a'); P.sounding = []; }
+function play(){
+  if (!P.song) return;
+  Synth.init();
+  if (P.ended) seek(0);
+  P.playing = true; updatePlayBtn();
+}
+function pause(){ P.playing = false; stopSounding(); updatePlayBtn(); }
+function finish(){
+  P.playing = false; P.ended = true; stopSounding(); updatePlayBtn();
+  const total = P.stats.hit + P.stats.miss;
+  if (S.mode !== 'listen' && total) toast('Well done! ' + P.stats.hit + ' notes played, ' + Math.round(100 * P.stats.hit / total) + '% correct', 3500);
+  else toast('Finished');
+}
+function fitOctave(){
+  if (!P.song || !S.autoFit) return;
+  const ev = P.song.events.filter(e => S.mode === 'listen' || practiced(e));
+  if (!ev.length) return;
+  let best = S.octave, bestCount = -1;
+  for (let o = -4; o <= 5; o++){
+    const lo = 48 + o * 12, hi = lo + S.keyCount;
+    const c = ev.reduce((s, e) => s + (e.n >= lo && e.n < hi ? 1 : 0), 0);
+    if (c > bestCount || (c === bestCount && Math.abs(o) < Math.abs(best))){ best = o; bestCount = c; }
+  }
+  if (best === S.octave) return;
+  if (Midi.out && Midi.sysex){ setOctave(best, true); toast('LUMI moved to octave ' + (best > 0 ? '+' : '') + best + ' for this song'); }
+  else if (Midi.out) toast('Tip: set the LUMI octave to ' + (best > 0 ? '+' : '') + best + ' for this song');
+}
+
+function advance(t0, t1){
+  const ev = P.song.events;
+  while (P.idx < ev.length && ev[P.idx].t < t1){
+    const e = ev[P.idx++];
+    if (e.t < t0 - 0.05) continue;
+    if (autoPlays(e)){ Synth.noteOn('a' + e.id, e.n, e.v); P.sounding.push(e); }
+  }
+  if (P.sounding.length) P.sounding = P.sounding.filter(e => { if (e.t + e.d <= t1){ Synth.noteOff('a' + e.id); return false; } return true; });
+}
+
+/* ---------- user input ---------- */
+function userNoteOn(n, v, src){
+  Synth.init();
+  Synth.noteOn('u' + n, n, v);
+  P.userDown.set(n, performance.now());
+  if (src === 'lumi' && S.autoTrack && !Lights.inRange(n)){
+    // The LUMI only sends notes from its own keys, so a note outside our range means its octave moved.
+    const span = S.keyCount, oct = Math.floor((n - 48) / 12);
+    const o = n < Lights.base() ? oct : oct - (span / 12 - 1);
+    setOctave(o, false);
+  }
+  if (!P.song || P.ended) return;
+  if (S.mode === 'learn'){
+    const g = P.groups[P.gi]; if (!g) return;
+    const target = g.notes.find(e => e.n === n && !P.hit.has(e.id));
+    if (target){
+      P.hit.add(target.id); P.stats.hit++;
+      if (!P.playing){ P.playing = true; updatePlayBtn(); }
+      if (g.notes.every(e => P.hit.has(e.id))){
+        if (P.t < g.t){ advance(P.t, g.t); P.t = g.t; }
+        // Blink these keys off so a repeated note in the next step lights up fresh.
+        for (const e of g.notes) if (Lights.lit.has(e.n)){ Midi.send([0x80, e.n, 0]); Lights.lit.delete(e.n); }
+        P.gi++; P.hit.clear();
+      }
+    } else if (P.playing && !g.notes.some(e => e.n === n)){ P.stats.miss++; P.flash.set(n, performance.now()); }
+  } else if (S.mode === 'along' && P.playing){
+    const ev = P.song.events;
+    let found = null;
+    for (let i = Math.max(0, P.idx - 40); i < ev.length && ev[i].t < P.t + 0.3; i++){
+      const e = ev[i]; if (e.n === n && practiced(e) && !P.hit.has(e.id) && Math.abs(e.t - P.t) < 0.3){ found = e; break; }
+    }
+    if (found){ P.hit.add(found.id); P.stats.hit++; } else { P.stats.miss++; P.flash.set(n, performance.now()); }
+  }
+}
+function userNoteOff(n){ Synth.noteOff('u' + n); P.userDown.delete(n); }
+
+function onMidiMessage(e){
+  const d = e.data; if (!d || !d.length) return;
+  const st = d[0] & 0xf0;
+  const src = e.target && LUMI_RE.test(e.target.name || '') ? 'lumi' : 'midi';
+  if (st === 0x90 && d[2] > 0) userNoteOn(d[1], d[2], src);
+  else if (st === 0x80 || (st === 0x90 && d[2] === 0)) userNoteOff(d[1]);
+  else if (st === 0xB0){
+    if (d[1] === 64) Synth.setSustain(d[2] >= 64);
+    else if (d[1] === 120 || d[1] === 123){ Synth.allOff('u'); P.userDown.clear(); }
+  }
+}
+
+/* ---------- which keys should be lit ---------- */
+function desiredLights(){
+  const m = new Map();
+  if (!P.song || Lights.showing) return m;
+  if (S.mode === 'learn'){
+    if (P.ended) return m;
+    const g = P.groups[P.gi];
+    if (g) for (const e of g.notes) if (!P.hit.has(e.id)) m.set(e.n, handColour(e.h));
+  } else if (P.playing){
+    const lead = S.mode === 'along' ? 0.25 * S.speed : 0;
+    const ev = P.song.events, from = firstVisible(P.t - P.song.maxDur);
+    for (let i = from; i < ev.length && ev[i].t <= P.t + lead; i++){
+      const e = ev[i];
+      if (e.t + e.d <= P.t) continue;
+      if (S.mode === 'listen' || practiced(e)) m.set(e.n, handColour(e.h));
+    }
+  }
+  return m;
+}
+function firstVisible(t){
+  const ev = P.song.events; let lo = 0, hi = ev.length;
+  while (lo < hi){ const mid = (lo + hi) >> 1; if (ev[mid].t < t) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+
+/* ============================================================
+   Drawing: falling notes + keyboard
+   ============================================================ */
+const cv = $('#stage'), cx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1, KB = { lo:48, hi:71, top:0, h:0, whites:[], ww:0, map:{} };
+
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  layoutKeys();
+}
+function layoutKeys(){
+  let lo = Lights.base(), hi = lo + S.keyCount - 1;
+  if (P.song && P.song.events.length){
+    for (const e of P.song.events){ if (e.n < lo) lo = e.n; if (e.n > hi) hi = e.n; }
+  }
+  lo = lo - (lo % 12); hi = hi + (11 - hi % 12);
+  while (hi - lo < 23) hi += 12;
+  lo = clamp(lo, 21, 108); hi = clamp(hi, lo + 11, 108);
+  const whites = []; for (let n = lo; n <= hi; n++) if (!isBlack(n)) whites.push(n);
+  const ww = W / whites.length;
+  const kh = clamp(H * 0.26, 80, Math.min(230, ww * 6.5));
+  const map = {};
+  whites.forEach((n, i) => map[n] = { x:i * ww, w:ww, black:false });
+  for (let n = lo; n <= hi; n++) if (isBlack(n) && map[n - 1]) map[n] = { x:map[n - 1].x + ww * 0.68, w:ww * 0.62, black:true };
+  KB = { lo, hi, top:H - kh, h:kh, whites, ww, map };
+}
+function roundRect(x, y, w, h, r){
+  r = Math.min(r, w / 2, h / 2);
+  cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r);
+  cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath();
+}
+function draw(now){
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  cx.fillStyle = '#0d0f14'; cx.fillRect(0, 0, W, H);
+  const top = KB.top, look = 3.2, pps = top / look;
+  // octave guide lines
+  cx.strokeStyle = 'rgba(255,255,255,.05)'; cx.lineWidth = 1;
+  for (const n of KB.whites){ const k = KB.map[n]; cx.beginPath(); cx.moveTo(k.x + .5, 0); cx.lineTo(k.x + .5, top); cx.stroke(); }
+  cx.strokeStyle = 'rgba(255,255,255,.12)';
+  for (const n of KB.whites) if (n % 12 === 0){ const k = KB.map[n]; cx.beginPath(); cx.moveTo(k.x + .5, 0); cx.lineTo(k.x + .5, top); cx.stroke(); }
+  // LUMI range shading
+  const lb = Lights.base(), le = lb + S.keyCount - 1;
+  if (KB.map[lb] && KB.map[le]){
+    const x0 = KB.map[lb].x, x1 = KB.map[le].x + KB.map[le].w;
+    cx.fillStyle = 'rgba(124,199,255,.035)'; cx.fillRect(x0, 0, x1 - x0, top);
+  }
+  // falling notes
+  const learnSet = new Set();
+  if (P.song){
+    if (S.mode === 'learn'){ const g = P.groups[P.gi]; if (g) for (const e of g.notes) if (!P.hit.has(e.id)) learnSet.add(e.id); }
+    const ev = P.song.events;
+    for (let i = firstVisible(P.t - P.song.maxDur); i < ev.length; i++){
+      const e = ev[i]; if (e.t > P.t + look) break;
+      if (e.t + e.d < P.t) continue;
+      const k = KB.map[e.n]; if (!k) continue;
+      const yb = top - (e.t - P.t) * pps, yt = yb - e.d * pps;
+      const col = lumiHex(handColour(e.h));
+      const pr = practiced(e) || S.mode === 'listen';
+      cx.globalAlpha = pr ? (P.hit.has(e.id) && S.mode === 'along' ? 0.4 : 0.95) : 0.35;
+      if (learnSet.has(e.id)){ cx.shadowColor = col; cx.shadowBlur = 16; }
+      cx.fillStyle = col;
+      const pad = k.black ? 1 : 2;
+      roundRect(k.x + pad, Math.max(-10, yt), k.w - pad * 2, Math.min(yb, top) - Math.max(-10, yt), 5); cx.fill();
+      cx.shadowBlur = 0; cx.globalAlpha = 1;
+      if (pr && yb - yt > 18 && k.w > 16){
+        cx.fillStyle = 'rgba(0,0,0,.55)'; cx.font = '600 ' + Math.min(12, k.w * 0.45) + 'px -apple-system,sans-serif'; cx.textAlign = 'center';
+        cx.fillText(NOTE_NAMES[e.n % 12], k.x + k.w / 2, Math.min(yb, top) - 6);
+      }
+    }
+  }
+  // hit line
+  cx.fillStyle = 'rgba(255,255,255,.25)'; cx.fillRect(0, top - 2, W, 2);
+  // keyboard
+  const state = n => {
+    if (P.userDown.has(n)) return { c:'#ffffff', glow:true, user:true };
+    const fl = P.flash.get(n); if (fl && now - fl < 300) return { c:'#ff506f', glow:true };
+    const lc = currentLit.get(n); if (lc) return { c:lumiHex(lc), glow:true };
+    for (const e of P.sounding) if (e.n === n) return { c:lumiHex(handColour(e.h)), glow:false };
+    return null;
+  };
+  for (const n of KB.whites){
+    const k = KB.map[n], s = state(n);
+    cx.fillStyle = s ? s.c : '#eef0f4';
+    roundRect(k.x + 1, top, k.w - 2, KB.h - 2, 4); cx.fill();
+    if (s && s.user){ cx.fillStyle = 'rgba(124,199,255,.55)'; roundRect(k.x + 1, top, k.w - 2, KB.h - 2, 4); cx.fill(); }
+    if (n % 12 === 0 && k.w > 14){ cx.fillStyle = '#8a92a6'; cx.font = Math.min(11, k.w * .4) + 'px -apple-system,sans-serif'; cx.textAlign = 'center'; cx.fillText(noteName(n), k.x + k.w / 2, top + KB.h - 8); }
+  }
+  for (let n = KB.lo; n <= KB.hi; n++){
+    if (!isBlack(n)) continue; const k = KB.map[n]; if (!k) continue; const s = state(n);
+    cx.fillStyle = s ? s.c : '#1d2029';
+    roundRect(k.x, top, k.w, KB.h * 0.62, 3); cx.fill();
+    if (s && s.user){ cx.fillStyle = 'rgba(124,199,255,.6)'; roundRect(k.x, top, k.w, KB.h * 0.62, 3); cx.fill(); }
+  }
+  // LUMI bracket
+  if (KB.map[lb] && KB.map[le]){
+    const x0 = KB.map[lb].x + 2, x1 = KB.map[le].x + KB.map[le].w - 2;
+    cx.fillStyle = Midi.out ? '#7cc7ff' : '#4a5263'; cx.fillRect(x0, top - 7, x1 - x0, 3);
+    cx.font = '600 11px -apple-system,sans-serif'; cx.textAlign = 'left'; cx.fillText('LUMI', x0, top - 11);
+  }
+}
+
+/* ============================================================
+   Main loop
+   ============================================================ */
+let lastFrame = performance.now(), currentLit = new Map(), lastHud = '';
+function frame(now){
+  const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
+  if (P.playing && P.song){
+    let target = P.t + dt * S.speed;
+    if (S.mode === 'learn'){ const g = P.groups[P.gi]; if (g && target >= g.t) target = g.t; }
+    advance(P.t, target); P.t = target;
+    const doneLearn = S.mode !== 'learn' || P.gi >= P.groups.length;
+    if (P.t >= P.song.duration + 0.3 && doneLearn) finish();
+  }
+  currentLit = desiredLights();
+  if (!Lights.showing) Lights.apply(currentLit);
+  draw(now);
+  updateHud();
+  requestAnimationFrame(frame);
+}
+function fmtTime(s){ s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+let seekDragging = false;
+function updateHud(){
+  let hint = '';
+  if (!P.song) hint = 'Pick a song';
+  else if (P.ended) hint = 'Finished! Tap ⏮ to go again';
+  else if (S.mode === 'learn'){
+    const g = P.groups[P.gi];
+    if (!g) hint = P.groups.length ? 'Nice!' : 'This hand has no notes. Try Both';
+    else {
+      const names = g.notes.filter(e => !P.hit.has(e.id)).map(e => noteName(e.n)).join(' + ');
+      hint = (P.playing ? 'Play ' : 'Press the lit keys to start: ') + names;
+      if (g.notes.some(e => !Lights.inRange(e.n)) && Midi.out) hint += '  (outside your LUMI\'s keys)';
+    }
+  } else if (!P.playing) hint = S.mode === 'listen' ? 'Tap Play to listen and watch the keys' : 'Tap Play, then play the lit keys in time';
+  else hint = S.mode === 'listen' ? 'Listening…' : 'Play the lit keys as they reach the line';
+  const sc = S.mode === 'listen' ? '' : ('✓ ' + P.stats.hit + '   ✗ ' + P.stats.miss);
+  const key = hint + '|' + sc;
+  if (key !== lastHud){ lastHud = key; $('#hint').textContent = hint; $('#score').textContent = sc; $('#score').style.display = sc ? '' : 'none'; }
+  if (P.song && !seekDragging){
+    $('#seek').value = Math.round(1000 * P.t / Math.max(0.01, P.song.duration));
+    $('#tNow').textContent = fmtTime(P.t);
+  }
+}
+
+/* ============================================================
+   UI wiring
+   ============================================================ */
+function updatePlayBtn(){ $('#btnPlay').textContent = P.playing ? '❚❚ Pause' : '▶ Play'; }
+function updateStatus(){
+  const dot = $('#statusDot'), txt = $('#statusText');
+  dot.className = 'dot';
+  if (!Midi.supported){ txt.textContent = 'No MIDI in this browser'; return; }
+  if (!Midi.access){ txt.textContent = 'Not connected'; return; }
+  const ins = Midi.inputs();
+  if (Midi.out){ dot.classList.add('on'); txt.textContent = Midi.out.name + (Midi.sysex ? '' : ' (lights only)'); }
+  else if (ins.length){ dot.classList.add('half'); txt.textContent = ins[0].name + ': no lights'; }
+  else txt.textContent = 'No keyboard found';
+  $('#btnConnect').textContent = Midi.out ? 'Connected' : 'Connect';
+  const sx = $('#sysexState'); if (sx) sx.textContent = Midi.sysex ? 'Allowed' : 'Not allowed';
+  $('#sysexBox').classList.toggle('disabled', !(Midi.out && Midi.sysex));
+  $('#sysexNote').textContent = Midi.out && Midi.sysex
+    ? 'These are sent to the LUMI and saved on it.'
+    : 'Needs a connected LUMI and SysEx permission. Key lights for songs still work without SysEx.';
+}
+function fillPortSelects(){
+  const ins = Midi.inputs(), outs = Midi.outputs();
+  const inSel = $('#inSel'), outSel = $('#outSel');
+  inSel.innerHTML = '<option value="*">All keyboards</option>' + ins.map(i => `<option>${esc(i.name)}</option>`).join('');
+  inSel.value = ins.some(i => i.name === S.inName) ? S.inName : '*';
+  outSel.innerHTML = '<option value="">Auto (find LUMI)</option><option value="none">Off</option>' + outs.map(o => `<option>${esc(o.name)}</option>`).join('');
+  outSel.value = S.outName === 'none' || outs.some(o => o.name === S.outName) ? S.outName : '';
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+function setSeg(id, val){ $$('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === val)); }
+function bindSeg(id, fn){ $$('#' + id + ' button').forEach(b => b.addEventListener('click', () => { setSeg(id, b.dataset.v); fn(b.dataset.v); })); }
+
+function initUI(){
+  // songs
+  const sel = $('#songSel');
+  sel.innerHTML = SONGS.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('');
+  sel.value = SONGS.some(s => s.id === S.song) ? S.song : SONGS[0].id;
+  sel.addEventListener('change', () => {
+    if (sel.value === '__file') return;
+    S.song = sel.value; save();
+    const opt = sel.querySelector('option[value="__file"]'); if (opt) opt.remove();
+    loadSong(buildSong(SONGS.find(s => s.id === sel.value)));
+  });
+  $('#btnImport').addEventListener('click', () => $('#fileIn').click());
+  $('#fileIn').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const song = parseMidiFile(await f.arrayBuffer(), f.name.replace(/\.midi?$/i, ''));
+      let opt = sel.querySelector('option[value="__file"]');
+      if (!opt){ opt = document.createElement('option'); opt.value = '__file'; sel.insertBefore(opt, sel.firstChild); }
+      opt.textContent = '📄 ' + song.title; sel.value = '__file';
+      loadSong(song); toast('Loaded ' + song.title + ' (' + song.events.length + ' notes)');
+    } catch(err){ toast('Could not open file: ' + err.message, 3500); log('MIDI file error: ' + err.message); }
+    e.target.value = '';
+  });
+  // mode / hands / speed
+  setSeg('modeSeg', S.mode); setSeg('handSeg', S.hands);
+  bindSeg('modeSeg', v => { S.mode = v; save(); stopSounding(); rebuildGroups(); fitOctave(); if (v === 'learn') P.playing = false; updatePlayBtn(); });
+  bindSeg('handSeg', v => { S.hands = v; save(); stopSounding(); rebuildGroups(); fitOctave(); });
+  const sp = $('#speed'); sp.value = S.speed; $('#speedVal').textContent = Math.round(S.speed * 100) + '%';
+  sp.addEventListener('input', () => { S.speed = parseFloat(sp.value); $('#speedVal').textContent = Math.round(S.speed * 100) + '%'; save(); });
+  $('#btnPlay').addEventListener('click', () => P.playing ? pause() : play());
+  $('#btnRestart').addEventListener('click', () => { const was = P.playing && S.mode !== 'learn'; seek(0); P.playing = was; updatePlayBtn(); });
+  const sk = $('#seek');
+  sk.addEventListener('input', () => { seekDragging = true; if (P.song) $('#tNow').textContent = fmtTime(sk.value / 1000 * P.song.duration); });
+  sk.addEventListener('change', () => { seekDragging = false; if (P.song){ const was = P.playing; seek(sk.value / 1000 * P.song.duration); P.playing = was; } });
+
+  // header
+  $('#btnConnect').addEventListener('click', async () => {
+    Synth.init();
+    if (!Midi.supported){ openSheet('help'); return; }
+    if (!Midi.access) await Midi.connect(); else { Midi.refresh(); openSheet('midi'); }
+  });
+  $('#btnSettings').addEventListener('click', () => openSheet());
+  $('#btnClose').addEventListener('click', closeSheet);
+  $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+  bindSeg('tabSeg', v => showTab(v));
+
+  // sound
+  const inst = $('#instSel'); inst.value = S.instrument;
+  inst.addEventListener('change', () => { S.instrument = inst.value; save(); Synth.allOff(); });
+  const vol = $('#vol'); vol.value = S.volume; vol.addEventListener('input', () => { S.volume = +vol.value; Synth.setVolume(S.volume); save(); });
+  const rev = $('#rev'); rev.value = S.reverb; rev.addEventListener('input', () => { S.reverb = +rev.value; Synth.setReverb(S.reverb); save(); });
+  const vc = $('#velc'); vc.value = S.velCurve; vc.addEventListener('input', () => { S.velCurve = +vc.value; save(); });
+  const ao = $('#autoOther'); ao.checked = S.autoOther; ao.addEventListener('change', () => { S.autoOther = ao.checked; save(); });
+
+  // lights
+  const swatches = (id, keyName) => {
+    const box = $(id);
+    box.innerHTML = PALETTE.map(v => `<button class="sw" data-v="${v}" style="background:${lumiHex(v)}" aria-label="colour ${v}"></button>`).join('');
+    const mark = () => $$(id + ' .sw').forEach(b => b.classList.toggle('on', +b.dataset.v === S[keyName]));
+    box.addEventListener('click', e => { const b = e.target.closest('.sw'); if (!b) return; S[keyName] = +b.dataset.v; save(); mark(); });
+    mark();
+  };
+  swatches('#swR', 'rhColor'); swatches('#swL', 'lhColor');
+  const kc = $('#keyCount'); kc.value = String(S.keyCount);
+  kc.addEventListener('change', () => { Lights.clear(); S.keyCount = +kc.value; save(); layoutKeys(); fitOctave(); });
+  $('#octVal').textContent = (S.octave > 0 ? '+' : '') + S.octave;
+  $('#octDown').addEventListener('click', () => setOctave(S.octave - 1, true));
+  $('#octUp').addEventListener('click', () => setOctave(S.octave + 1, true));
+  const af = $('#autoFit'); af.checked = S.autoFit; af.addEventListener('change', () => { S.autoFit = af.checked; save(); fitOctave(); });
+  const at = $('#autoTrack'); at.checked = S.autoTrack; at.addEventListener('change', () => { S.autoTrack = at.checked; save(); });
+  $('#btnTest').addEventListener('click', () => Lights.rainbow());
+  $('#btnClear').addEventListener('click', () => {
+    Lights.clear();
+    const b = Lights.base(); for (let i = 0; i < S.keyCount; i++) Midi.send([0x80, b + i, 0]);
+  });
+  const cg = $('#colGlobal'); cg.value = S.colGlobal; cg.addEventListener('change', () => { S.colGlobal = cg.value; save(); Lumi.colour(0, cg.value); });
+  const cr = $('#colRoot'); cr.value = S.colRoot; cr.addEventListener('change', () => { S.colRoot = cr.value; save(); Lumi.colour(1, cr.value); });
+  const br = $('#bright'); br.value = S.bright; br.addEventListener('change', () => { S.bright = +br.value; save(); Lumi.brightness(S.bright); });
+  const cm = $('#colMode'); cm.value = String(S.colMode); cm.addEventListener('change', () => { S.colMode = +cm.value; save(); Lumi.colourMode(S.colMode); });
+  const sc = $('#scaleSel'); sc.innerHTML = SCALES.map((s, i) => `<option value="${i}">${s}</option>`).join(''); sc.value = String(S.scale);
+  sc.addEventListener('change', () => { S.scale = +sc.value; save(); Lumi.scale(S.scale); });
+  const ks = $('#keySel'); ks.innerHTML = NOTE_NAMES.map((s, i) => `<option value="${i}">${s}</option>`).join(''); ks.value = String(S.key);
+  ks.addEventListener('change', () => { S.key = +ks.value; save(); Lumi.key(S.key); });
+
+  // midi ports
+  $('#inSel').addEventListener('change', e => { S.inName = e.target.value; save(); Midi.refresh(); });
+  $('#outSel').addEventListener('change', e => { Lights.clear(); S.outName = e.target.value; save(); Midi.refresh(); });
+
+  // on-screen keyboard (multi-touch)
+  const touches = new Map();
+  const hitKey = (x, y) => {
+    if (y < KB.top) return null;
+    if (y < KB.top + KB.h * 0.62){
+      for (let n = KB.lo; n <= KB.hi; n++){ const k = KB.map[n]; if (k && k.black && x >= k.x && x < k.x + k.w) return n; }
+    }
+    for (const n of KB.whites){ const k = KB.map[n]; if (x >= k.x && x < k.x + k.w) return n; }
+    return null;
+  };
+  const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cv.addEventListener('pointerdown', e => {
+    const [x, y] = pos(e); const n = hitKey(x, y); if (n == null) return;
+    e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch(_){}
+    const v = clamp(Math.round(60 + 60 * ((y - KB.top) / KB.h)), 40, 120);
+    touches.set(e.pointerId, n); userNoteOn(n, v, 'screen');
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!touches.has(e.pointerId)) return;
+    const [x, y] = pos(e); const n = hitKey(x, y); const old = touches.get(e.pointerId);
+    if (n != null && n !== old){ userNoteOff(old); touches.set(e.pointerId, n); userNoteOn(n, 90, 'screen'); }
+  });
+  const up = e => { if (!touches.has(e.pointerId)) return; userNoteOff(touches.get(e.pointerId)); touches.delete(e.pointerId); };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+  // computer keyboard (handy for testing on a laptop)
+  const KEYMAP = 'awsedftgyhujkolp;\''; const pressed = new Set();
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.code === 'Space'){ e.preventDefault(); P.playing ? pause() : play(); return; }
+    const i = KEYMAP.indexOf(e.key.toLowerCase()); if (i < 0 || e.repeat) return;
+    const n = Lights.base() + 12 + i; pressed.add(n); userNoteOn(n, 96, 'keys');
+  });
+  window.addEventListener('keyup', e => {
+    const i = KEYMAP.indexOf(e.key.toLowerCase()); if (i < 0) return;
+    const n = Lights.base() + 12 + i; if (pressed.delete(n)) userNoteOff(n);
+  });
+
+  // lights off when leaving
+  const offAll = () => { pause(); Lights.clear(); };
+  window.addEventListener('pagehide', offAll);
+  document.addEventListener('visibilitychange', () => { if (document.hidden){ pause(); Lights.clear(); } });
+  window.addEventListener('resize', resize);
+  if (window.ResizeObserver) new ResizeObserver(() => resize()).observe($('main'));
+}
+function openSheet(tab){ $('#sheet').classList.add('show'); if (tab){ setSeg('tabSeg', tab); showTab(tab); } }
+function closeSheet(){ $('#sheet').classList.remove('show'); }
+function showTab(v){ $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === v)); }
+
+/* ---------- start ---------- */
+(function boot(){
+  const deco = $('#deco');
+  deco.innerHTML = [1, 16, 38, 62, 90, 104, 126].map((v, i) => `<b style="background:${lumiHex(v)};animation-delay:${i * 0.18}s"></b>`).join('');
+  if (!Midi.supported){
+    $('#startNote').innerHTML = 'This browser can\'t reach MIDI keyboards. On iPad, open this page in the free <b>Web MIDI Browser</b> app. You can still try it with the on-screen keys.';
+    const bn = $('#banner'); bn.classList.add('show');
+    bn.innerHTML = 'No MIDI in this browser, so the LUMI can\'t connect here. On iPad, open this page in the <b>Web MIDI Browser</b> app (see Help in ⚙︎).';
+  }
+  initUI(); resize();
+  loadSong(buildSong(SONGS.find(s => s.id === $('#songSel').value)));
+  updateStatus();
+  requestAnimationFrame(frame);
+  $('#btnStart').addEventListener('click', async () => {
+    Synth.init();
+    $('#start').style.display = 'none';
+    resize();
+    if (Midi.supported){
+      const ok = await Midi.connect();
+      if (ok && Midi.out){
+        toast('Connected to ' + Midi.out.name);
+        if (Midi.sysex) Lumi.octave(S.octave);
+        Lights.rainbow();
+      } else if (ok) toast('No LUMI found yet. Plug it in and it will appear');
+    }
+  });
+})();
+</script>
+</body>
+</html>
